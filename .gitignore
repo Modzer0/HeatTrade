@@ -1,0 +1,21 @@
+# Build output
+SpacefleetTradeMod/bin/
+SpacefleetTradeMod/obj/
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Decompiled PDB (large binary)
+Decompile/Assembly-CSharp/Assembly-CSharp.pdb
+
+# BepInEx distribution binaries (not our code)
+BepInEx_win_x64_*/
+
+# Decompiled lib DLLs (Unity engine references)
+Decompile/Assembly-CSharp/lib/

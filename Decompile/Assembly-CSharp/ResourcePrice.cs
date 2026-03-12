@@ -1,0 +1,21 @@
+﻿// Decompiled with JetBrains decompiler
+// Type: ResourcePrice
+// Assembly: Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+// MVID: 16756D39-DAA9-460B-A67B-12FE3A9D5968
+// Assembly location: D:\SteamLibrary\steamapps\common\Spacefleet - Heat Death\Spacefleet - Heat Death_Data\Managed\Assembly-CSharp.dll
+
+using System;
+
+#nullable disable
+[Serializable]
+public class ResourcePrice
+{
+  public ResourceDefinition resource;
+  public int price;
+
+  public ResourcePrice(ResourceDefinition newResource, int newPrice)
+  {
+    this.resource = newResource;
+    this.price = newPrice;
+  }
+}

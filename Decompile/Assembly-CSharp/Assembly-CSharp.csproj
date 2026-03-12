@@ -1,0 +1,632 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--Project was exported from assembly: D:\SteamLibrary\steamapps\common\Spacefleet - Heat Death\Spacefleet - Heat Death_Data\Managed\Assembly-CSharp.dll-->
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1924950E-40D8-4637-BFDF-F7F760788399}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AssemblyName>Assembly-CSharp</AssemblyName>
+    <ApplicationVersion>0.0.0.0</ApplicationVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime">
+      <HintPath>lib\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+      <HintPath>lib\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>lib\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AIModule">
+      <HintPath>lib\UnityEngine.AIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>lib\UnityEngine.AnimationModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>lib\UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>lib\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>lib\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>lib\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>lib\UnityEngine.JSONSerializeModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>lib\UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>lib\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ScreenCaptureModule">
+      <HintPath>lib\UnityEngine.ScreenCaptureModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TerrainModule">
+      <HintPath>lib\UnityEngine.TerrainModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextCoreFontEngineModule">
+      <HintPath>lib\UnityEngine.TextCoreFontEngineModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>lib\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>lib\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>lib\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>lib\UnityEngine.UnityWebRequestModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VideoModule">
+      <HintPath>lib\UnityEngine.VideoModule.dll</HintPath>
+    </Reference>
+    <Reference Include="netstandard">
+      <HintPath>lib\netstandard.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="SquadronToggle.cs" />
+    <Compile Include="AllFish.cs" />
+    <Compile Include="Astrorod.cs" />
+    <Compile Include="FishButton.cs" />
+    <Compile Include="AC3Attack.cs" />
+    <Compile Include="AllFish3.cs" />
+    <Compile Include="Astrofish3.cs" />
+    <Compile Include="FishRarity.cs" />
+    <Compile Include="CatchChance3.cs" />
+    <Compile Include="BlueprintLibrary.cs" />
+    <Compile Include="ICargo.cs" />
+    <Compile Include="IResupplyable.cs" />
+    <Compile Include="ModuleBP.cs" />
+    <Compile Include="CargoModuleBP.cs" />
+    <Compile Include="CrewModuleBP.cs" />
+    <Compile Include="DriveModuleBP.cs" />
+    <Compile Include="FuelModuleBP.cs" />
+    <Compile Include="HeatsinkModuleBP.cs" />
+    <Compile Include="HeatsinkType.cs" />
+    <Compile Include="carbonSpongeHeatsink.cs" />
+    <Compile Include="moltenSaltTankHeatsink.cs" />
+    <Compile Include="MissilesModuleBP.cs" />
+    <Compile Include="NoseModuleBP.cs" />
+    <Compile Include="SensorsModuleBP.cs" />
+    <Compile Include="WeaponModuleBP.cs" />
+    <Compile Include="MountBP.cs" />
+    <Compile Include="KineticMountBP.cs" />
+    <Compile Include="LaserMountBP.cs" />
+    <Compile Include="RadiatorMountBP.cs" />
+    <Compile Include="PartBP.cs" />
+    <Compile Include="ShipBP.cs" />
+    <Compile Include="FactionIconsLibrary.cs" />
+    <Compile Include="PartsLibrary.cs" />
+    <Compile Include="PartPrefabData.cs" />
+    <Compile Include="RepairCycle.cs" />
+    <Compile Include="AllResources.cs" />
+    <Compile Include="AllRecipes.cs" />
+    <Compile Include="ProductionRecipe.cs" />
+    <Compile Include="ResourceDefinition.cs" />
+    <Compile Include="ResourceType.cs" />
+    <Compile Include="ResupplyCycle.cs" />
+    <Compile Include="S_StructureLibrary.cs" />
+    <Compile Include="T_StructureLibrary.cs" />
+    <Compile Include="PrefabEntry.cs" />
+    <Compile Include="IClickable.cs" />
+    <Compile Include="IHailable.cs" />
+    <Compile Include="IInitable.cs" />
+    <Compile Include="IPool.cs" />
+    <Compile Include="ITooltipable.cs" />
+    <Compile Include="MissileLauncher.cs" />
+    <Compile Include="MoveLine.cs" />
+    <Compile Include="NavPanel.cs" />
+    <Compile Include="ParticleProjectile.cs" />
+    <Compile Include="GameLoader.cs" />
+    <Compile Include="GameSaveData.cs" />
+    <Compile Include="BodyData.cs" />
+    <Compile Include="FactionData.cs" />
+    <Compile Include="StationData.cs" />
+    <Compile Include="FleetData.cs" />
+    <Compile Include="NavigationData.cs" />
+    <Compile Include="StructureData.cs" />
+    <Compile Include="ShipData.cs" />
+    <Compile Include="OrbitData.cs" />
+    <Compile Include="TacticalModuleData.cs" />
+    <Compile Include="TacticalMountData.cs" />
+    <Compile Include="ResourceData.cs" />
+    <Compile Include="InventoryData.cs" />
+    <Compile Include="MarketData.cs" />
+    <Compile Include="FactoryData.cs" />
+    <Compile Include="SerializableVector3.cs" />
+    <Compile Include="SerializableQuaternion.cs" />
+    <Compile Include="IntIntPair.cs" />
+    <Compile Include="SerializableIntIntDictionary.cs" />
+    <Compile Include="ColorData.cs" />
+    <Compile Include="GameSaver.cs" />
+    <Compile Include="LoadImg.cs" />
+    <Compile Include="SaveLoadSystem.cs" />
+    <Compile Include="SceneTransitionManager.cs" />
+    <Compile Include="GameStartType.cs" />
+    <Compile Include="TacticalGroupData.cs" />
+    <Compile Include="TacticalShipData.cs" />
+    <Compile Include="BodyInfo.cs" />
+    <Compile Include="CamInfo.cs" />
+    <Compile Include="FleetManager.cs" />
+    <Compile Include="FleetState.cs" />
+    <Compile Include="FleetType.cs" />
+    <Compile Include="Navigation.cs" />
+    <Compile Include="NavigationState.cs" />
+    <Compile Include="FlightType.cs" />
+    <Compile Include="ArrivalType.cs" />
+    <Compile Include="Orbiter.cs" />
+    <Compile Include="OrbitRenderer.cs" />
+    <Compile Include="Structure.cs" />
+    <Compile Include="S_Attachment.cs" />
+    <Compile Include="TacticalAttachmentData.cs" />
+    <Compile Include="AttachmentType.cs" />
+    <Compile Include="S_CrewModule.cs" />
+    <Compile Include="S_FuelStorage.cs" />
+    <Compile Include="S_HeatSink.cs" />
+    <Compile Include="S_Laser.cs" />
+    <Compile Include="S_Module.cs" />
+    <Compile Include="PartType.cs" />
+    <Compile Include="HeatClass.cs" />
+    <Compile Include="SizeClass.cs" />
+    <Compile Include="S_Mount.cs" />
+    <Compile Include="S_PDCBay.cs" />
+    <Compile Include="S_Propulsion.cs" />
+    <Compile Include="PropulsionType.cs" />
+    <Compile Include="S_ShipDataUI.cs" />
+    <Compile Include="S_WeaponSystem.cs" />
+    <Compile Include="TacticalCamera.cs" />
+    <Compile Include="TacticalInputs.cs" />
+    <Compile Include="CommandMode.cs" />
+    <Compile Include="SelectionMode.cs" />
+    <Compile Include="ScopeSpot.cs" />
+    <Compile Include="T_CrewModule.cs" />
+    <Compile Include="T_Drive.cs" />
+    <Compile Include="T_FuelTank.cs" />
+    <Compile Include="T_HeatSink.cs" />
+    <Compile Include="T_Module.cs" />
+    <Compile Include="T_Mount.cs" />
+    <Compile Include="T_PDCBay.cs" />
+    <Compile Include="T_Radiator.cs" />
+    <Compile Include="Pathfinder.cs" />
+    <Compile Include="PathfinderState.cs" />
+    <Compile Include="PID2.cs" />
+    <Compile Include="ShipController.cs" />
+    <Compile Include="ThrustParticles.cs" />
+    <Compile Include="Missile2.cs" />
+    <Compile Include="MissileType.cs" />
+    <Compile Include="MissileBay.cs" />
+    <Compile Include="MissileGuidance.cs" />
+    <Compile Include="MissileSystem.cs" />
+    <Compile Include="MissileMode.cs" />
+    <Compile Include="QuickLaunchSystem.cs" />
+    <Compile Include="PDC.cs" />
+    <Compile Include="pdcSystem.cs" />
+    <Compile Include="PDL.cs" />
+    <Compile Include="Projectile.cs" />
+    <Compile Include="ProjectileType.cs" />
+    <Compile Include="Turret2.cs" />
+    <Compile Include="TurretWeapon.cs" />
+    <Compile Include="WeaponSystem.cs" />
+    <Compile Include="WeaponType.cs" />
+    <Compile Include="WeaponMode.cs" />
+    <Compile Include="TacticalObjectSource.cs" />
+    <Compile Include="TacticalSceneLoader.cs" />
+    <Compile Include="HeightPointer.cs" />
+    <Compile Include="TargetDisplay.cs" />
+    <Compile Include="TrackDisplayer.cs" />
+    <Compile Include="MissileUI.cs" />
+    <Compile Include="PDCUI.cs" />
+    <Compile Include="WeaponsUI.cs" />
+    <Compile Include="WeaponUI.cs" />
+    <Compile Include="Track.cs" />
+    <Compile Include="TrackType.cs" />
+    <Compile Include="IFF.cs" />
+    <Compile Include="aiAdmiral.cs" />
+    <Compile Include="AllStructures.cs" />
+    <Compile Include="AmbienceManager.cs" />
+    <Compile Include="RandomRotator.cs" />
+    <Compile Include="Astrocaster2.cs" />
+    <Compile Include="Astrocaster3.cs" />
+    <Compile Include="AstrocasterSFX.cs" />
+    <Compile Include="AtlasFleetTimer.cs" />
+    <Compile Include="Attachments.cs" />
+    <Compile Include="AttachmentsPanel.cs" />
+    <Compile Include="AudioManager.cs" />
+    <Compile Include="Autoresolver.cs" />
+    <Compile Include="BodySpawner.cs" />
+    <Compile Include="Borderline.cs" />
+    <Compile Include="Bordersphere.cs" />
+    <Compile Include="BountyButton.cs" />
+    <Compile Include="BountyHunting.cs" />
+    <Compile Include="BountyFleet.cs" />
+    <Compile Include="ButtonGroup.cs" />
+    <Compile Include="CamController.cs" />
+    <Compile Include="CameraIdleShake.cs" />
+    <Compile Include="CameraManager.cs" />
+    <Compile Include="CameraShaker.cs" />
+    <Compile Include="CamsManager.cs" />
+    <Compile Include="Captain.cs" />
+    <Compile Include="CaptainRole.cs" />
+    <Compile Include="CaptainCommand.cs" />
+    <Compile Include="CaptainDirection.cs" />
+    <Compile Include="CaptainWeapons.cs" />
+    <Compile Include="CaptainRange.cs" />
+    <Compile Include="CaptainMissileRole.cs" />
+    <Compile Include="CaptainMissileSpend.cs" />
+    <Compile Include="CaptainDataUI.cs" />
+    <Compile Include="CaptainToggle.cs" />
+    <Compile Include="Carousel.cs" />
+    <Compile Include="CollisionChecker.cs" />
+    <Compile Include="ColorblindManager.cs" />
+    <Compile Include="ColorManager.cs" />
+    <Compile Include="ColorToggle.cs" />
+    <Compile Include="CombatManager.cs" />
+    <Compile Include="CommandTooltip.cs" />
+    <Compile Include="DebugManager.cs" />
+    <Compile Include="DebugStrat.cs" />
+    <Compile Include="Decal.cs" />
+    <Compile Include="DockHoldingPoint.cs" />
+    <Compile Include="DockingPoint.cs" />
+    <Compile Include="DockTooltipInfo.cs" />
+    <Compile Include="Drone.cs" />
+    <Compile Include="EncounterPanelManager.cs" />
+    <Compile Include="EndScreen.cs" />
+    <Compile Include="ExhaustPlume.cs" />
+    <Compile Include="ExhaustPlumes.cs" />
+    <Compile Include="ExplosionBall.cs" />
+    <Compile Include="FactionButton.cs" />
+    <Compile Include="FactionsManager.cs" />
+    <Compile Include="Faction.cs" />
+    <Compile Include="FactionsPanel.cs" />
+    <Compile Include="Factory.cs" />
+    <Compile Include="RecipeCapacity.cs" />
+    <Compile Include="Fader.cs" />
+    <Compile Include="FaderManager.cs" />
+    <Compile Include="FeedbackSystem.cs" />
+    <Compile Include="FishCatchUI.cs" />
+    <Compile Include="FleetManagerUI.cs" />
+    <Compile Include="FleetNearbyUI.cs" />
+    <Compile Include="FleetPanel.cs" />
+    <Compile Include="FleetPanels.cs" />
+    <Compile Include="FleetPortUI.cs" />
+    <Compile Include="Follower.cs" />
+    <Compile Include="FuelManager.cs" />
+    <Compile Include="GlobalMarket.cs" />
+    <Compile Include="ResourcePrice.cs" />
+    <Compile Include="GlobalMarketPanelManager.cs" />
+    <Compile Include="HeatManager.cs" />
+    <Compile Include="HeatSource.cs" />
+    <Compile Include="HeatSystemUI.cs" />
+    <Compile Include="HeightLine.cs" />
+    <Compile Include="ICompartment.cs" />
+    <Compile Include="IconsManager.cs" />
+    <Compile Include="IHealth.cs" />
+    <Compile Include="DamageType.cs" />
+    <Compile Include="ArmorType.cs" />
+    <Compile Include="IMissile.cs" />
+    <Compile Include="IMissileStorage.cs" />
+    <Compile Include="IMount.cs" />
+    <Compile Include="IngredientCard.cs" />
+    <Compile Include="InputToggler.cs" />
+    <Compile Include="BootstrapManager.cs" />
+    <Compile Include="CameraController.cs" />
+    <Compile Include="CameraManager2.cs" />
+    <Compile Include="EnemyPlane.cs" />
+    <Compile Include="LaunchMissile.cs" />
+    <Compile Include="Missile.cs" />
+    <Compile Include="RadarRotation.cs" />
+    <Compile Include="SelfDestroy.cs" />
+    <Compile Include="AirBoneSpawner.cs" />
+    <Compile Include="EnemyPlaneManager.cs" />
+    <Compile Include="EnemySoldier.cs" />
+    <Compile Include="EnemyTankManager.cs" />
+    <Compile Include="ExplosionPhysicsForce.cs" />
+    <Compile Include="MachineGunController.cs" />
+    <Compile Include="Manager.cs" />
+    <Compile Include="MediumProjectile.cs" />
+    <Compile Include="Plane.cs" />
+    <Compile Include="PropellerRotator.cs" />
+    <Compile Include="SmallProjectile.cs" />
+    <Compile Include="Tank.cs" />
+    <Compile Include="TimeManager2.cs" />
+    <Compile Include="AntiMissileGunController.cs" />
+    <Compile Include="AntiMissileGunScanner.cs" />
+    <Compile Include="AntiMissileProjectile.cs" />
+    <Compile Include="SmokeDirection.cs" />
+    <Compile Include="InterceptMissile.cs" />
+    <Compile Include="InterceptMissileController.cs" />
+    <Compile Include="InterceptMissileScanner.cs" />
+    <Compile Include="PoolManager.cs" />
+    <Compile Include="PoolObject.cs" />
+    <Compile Include="ITrackable.cs" />
+    <Compile Include="LaserCalculator.cs" />
+    <Compile Include="LaserType.cs" />
+    <Compile Include="LaserToggler.cs" />
+    <Compile Include="OldGUIExamplesCS.cs" />
+    <Compile Include="TestingPunch.cs" />
+    <Compile Include="TestingRigidbodyCS.cs" />
+    <Compile Include="Following.cs" />
+    <Compile Include="GeneralAdvancedTechniques.cs" />
+    <Compile Include="GeneralBasic.cs" />
+    <Compile Include="GeneralBasics2d.cs" />
+    <Compile Include="GeneralCameraShake.cs" />
+    <Compile Include="GeneralEasingTypes.cs" />
+    <Compile Include="GeneralEventsListeners.cs" />
+    <Compile Include="GeneralSequencer.cs" />
+    <Compile Include="GeneralSimpleUI.cs" />
+    <Compile Include="GeneralUISpace.cs" />
+    <Compile Include="LogoCinematic.cs" />
+    <Compile Include="PathBezier2d.cs" />
+    <Compile Include="ExampleSpline.cs" />
+    <Compile Include="PathSpline2d.cs" />
+    <Compile Include="PathSplineEndless.cs" />
+    <Compile Include="PathSplinePerformance.cs" />
+    <Compile Include="PathSplines.cs" />
+    <Compile Include="PathSplineTrack.cs" />
+    <Compile Include="TestingZLegacy.cs" />
+    <Compile Include="TestingZLegacyExt.cs" />
+    <Compile Include="LeanAudioStream.cs" />
+    <Compile Include="LeanAudio.cs" />
+    <Compile Include="LeanAudioOptions.cs" />
+    <Compile Include="LeanSmooth.cs" />
+    <Compile Include="LeanTester.cs" />
+    <Compile Include="LeanTest.cs" />
+    <Compile Include="TweenAction.cs" />
+    <Compile Include="LeanTweenType.cs" />
+    <Compile Include="LeanProp.cs" />
+    <Compile Include="LeanTween.cs" />
+    <Compile Include="LTUtility.cs" />
+    <Compile Include="LTBezier.cs" />
+    <Compile Include="LTBezierPath.cs" />
+    <Compile Include="LTSpline.cs" />
+    <Compile Include="LTRect.cs" />
+    <Compile Include="LTEvent.cs" />
+    <Compile Include="LTGUI.cs" />
+    <Compile Include="LeanTweenExt.cs" />
+    <Compile Include="LTDescr.cs" />
+    <Compile Include="LTDescrOptional.cs" />
+    <Compile Include="LTSeq.cs" />
+    <Compile Include="LinePointer.cs" />
+    <Compile Include="LineRendererUI.cs" />
+    <Compile Include="LinkOpener.cs" />
+    <Compile Include="LoadingScreen.cs" />
+    <Compile Include="MainMenu.cs" />
+    <Compile Include="PlayerBackground.cs" />
+    <Compile Include="MainMenuSaveManager.cs" />
+    <Compile Include="MapInputs.cs" />
+    <Compile Include="Market.cs" />
+    <Compile Include="MarketPanelManager.cs" />
+    <Compile Include="Crouch.cs" />
+    <Compile Include="FirstPersonAudio.cs" />
+    <Compile Include="GroundCheck.cs" />
+    <Compile Include="Jump.cs" />
+    <Compile Include="Zoom.cs" />
+    <Compile Include="FirstPersonLook.cs" />
+    <Compile Include="FirstPersonMovement.cs" />
+    <Compile Include="Minimizer.cs" />
+    <Compile Include="ModulesUI.cs" />
+    <Compile Include="MoneyPanelManager.cs" />
+    <Compile Include="NewGameManager.cs" />
+    <Compile Include="Notification.cs" />
+    <Compile Include="NotificationsManager.cs" />
+    <Compile Include="ColorTheme.cs" />
+    <Compile Include="OLD_Navigation.cs" />
+    <Compile Include="OrbitalBodies.cs" />
+    <Compile Include="PartHealthUI.cs" />
+    <Compile Include="PartsLibraryManager.cs" />
+    <Compile Include="PIDMissile.cs" />
+    <Compile Include="ExtendedFlycam.cs" />
+    <Compile Include="ArrowObjectPool.cs" />
+    <Compile Include="BoxObjectPool.cs" />
+    <Compile Include="Indicator.cs" />
+    <Compile Include="IndicatorType.cs" />
+    <Compile Include="OffScreenIndicator.cs" />
+    <Compile Include="Target.cs" />
+    <Compile Include="PlayerFleetPanelManager.cs" />
+    <Compile Include="PlayerFleetUI.cs" />
+    <Compile Include="Pointer.cs" />
+    <Compile Include="Pool.cs" />
+    <Compile Include="PooledParticle.cs" />
+    <Compile Include="PortFuelToggle.cs" />
+    <Compile Include="PowerManager.cs" />
+    <Compile Include="ProductionPanel.cs" />
+    <Compile Include="PrometheusVideo.cs" />
+    <Compile Include="RadarBox.cs" />
+    <Compile Include="RadiatorCalculator.cs" />
+    <Compile Include="Railgun.cs" />
+    <Compile Include="Randomizer.cs" />
+    <Compile Include="RecipeCard.cs" />
+    <Compile Include="ResourceCargoData.cs" />
+    <Compile Include="ResourceGlobalData.cs" />
+    <Compile Include="ResourceInventory.cs" />
+    <Compile Include="ResourceQuantity.cs" />
+    <Compile Include="ResourceMarketData.cs" />
+    <Compile Include="RetroLight.cs" />
+    <Compile Include="Revolver.cs" />
+    <Compile Include="RuntimeCone.cs" />
+    <Compile Include="Scaling.cs" />
+    <Compile Include="SelectedPanelManager.cs" />
+    <Compile Include="Selector.cs" />
+    <Compile Include="Sensors.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="Keybind.cs" />
+    <Compile Include="Setup.cs" />
+    <Compile Include="SFX.cs" />
+    <Compile Include="Ship.cs" />
+    <Compile Include="ShipAvailable.cs" />
+    <Compile Include="ShipButton.cs" />
+    <Compile Include="ShipDataUI.cs" />
+    <Compile Include="ShipFuelUI.cs" />
+    <Compile Include="ShipInfoManager.cs" />
+    <Compile Include="ShipInfoUI.cs" />
+    <Compile Include="ShipManagementPanel.cs" />
+    <Compile Include="ShipModulesCard.cs" />
+    <Compile Include="ShipNavigation.cs" />
+    <Compile Include="ShipSpawner.cs" />
+    <Compile Include="ShipTransferUI.cs" />
+    <Compile Include="ShipVicUI.cs" />
+    <Compile Include="Shipyard.cs" />
+    <Compile Include="ShipyardModuleCard.cs" />
+    <Compile Include="SkirmishMapFollower.cs" />
+    <Compile Include="SkirmishMapManager.cs" />
+    <Compile Include="SkirmishMapName.cs" />
+    <Compile Include="SkirmishMap.cs" />
+    <Compile Include="SkirmishMapToggle.cs" />
+    <Compile Include="SkirmishSetup.cs" />
+    <Compile Include="skyboxspace_demo_v1.cs" />
+    <Compile Include="skyboxspace_mouselook_v1.cs" />
+    <Compile Include="SmallFleetData.cs" />
+    <Compile Include="SpaceElevator.cs" />
+    <Compile Include="Squadron.cs" />
+    <Compile Include="SquadronRole.cs" />
+    <Compile Include="SquadronCommand.cs" />
+    <Compile Include="SquadronAssignment.cs" />
+    <Compile Include="SquadronDataUI.cs" />
+    <Compile Include="Starter.cs" />
+    <Compile Include="StartFacer.cs" />
+    <Compile Include="StationHarborUI.cs" />
+    <Compile Include="DockTooltipType.cs" />
+    <Compile Include="StationManager.cs" />
+    <Compile Include="StationPort.cs" />
+    <Compile Include="StrategicAudioManager.cs" />
+    <Compile Include="Subsystem.cs" />
+    <Compile Include="S_CargoStorage.cs" />
+    <Compile Include="S_Module2.cs" />
+    <Compile Include="S_Mount2.cs" />
+    <Compile Include="S_PartHealth.cs" />
+    <Compile Include="S_Sensors.cs" />
+    <Compile Include="S_Ship.cs" />
+    <Compile Include="TacticalNavUI.cs" />
+    <Compile Include="TacticalShipAudio.cs" />
+    <Compile Include="Temp.cs" />
+    <Compile Include="TerminalTyper.cs" />
+    <Compile Include="Test.cs" />
+    <Compile Include="TestMissileSpawner.cs" />
+    <Compile Include="ChatController.cs" />
+    <Compile Include="DropdownSample.cs" />
+    <Compile Include="EnvMapAnimator.cs" />
+    <Compile Include="TimeController.cs" />
+    <Compile Include="TimeManager.cs" />
+    <Compile Include="Toggler.cs" />
+    <Compile Include="Tooltip.cs" />
+    <Compile Include="TooltipSystem.cs" />
+    <Compile Include="TooltipType.cs" />
+    <Compile Include="TrackButton.cs" />
+    <Compile Include="TrackData.cs" />
+    <Compile Include="TrackList.cs" />
+    <Compile Include="Trader.cs" />
+    <Compile Include="TraderPanelManager.cs" />
+    <Compile Include="TransferFleetButton.cs" />
+    <Compile Include="Turret.cs" />
+    <Compile Include="TurretBall.cs" />
+    <Compile Include="Tutorial1.cs" />
+    <Compile Include="BigText.cs" />
+    <Compile Include="SaraStep.cs" />
+    <Compile Include="Tutorial2.cs" />
+    <Compile Include="Tutorial3.cs" />
+    <Compile Include="Readme.cs" />
+    <Compile Include="T_CargoTank.cs" />
+    <Compile Include="T_NoseArmor.cs" />
+    <Compile Include="T_Nozzle.cs" />
+    <Compile Include="T_Sensors.cs" />
+    <Compile Include="uiAnimAdvanced.cs" />
+    <Compile Include="uiAnimator.cs" />
+    <Compile Include="uiBar.cs" />
+    <Compile Include="uiButton.cs" />
+    <Compile Include="uiDraggable.cs" />
+    <Compile Include="UIManager.cs" />
+    <Compile Include="uiMover.cs" />
+    <Compile Include="uiText.cs" />
+    <Compile Include="uiWeapon.cs" />
+    <Compile Include="SpawnEffect.cs" />
+    <Compile Include="RampAsset.cs" />
+    <Compile Include="AdjustTimeScale.cs" />
+    <Compile Include="ProximityActivate.cs" />
+    <Compile Include="SimpleCharacterMotor.cs" />
+    <Compile Include="VersionText.cs" />
+    <Compile Include="Weapon.cs" />
+    <Compile Include="Weapons.cs" />
+    <Compile Include="WelcomePanel.cs" />
+    <Compile Include="WorldCanvasScaler.cs" />
+    <Compile Include="WorldWidth.cs" />
+    <Compile Include="UnityEngine\AI\NavMeshLink.cs" />
+    <Compile Include="UnityEngine\AI\NavMeshModifier.cs" />
+    <Compile Include="UnityEngine\AI\NavMeshModifierVolume.cs" />
+    <Compile Include="UnityEngine\AI\CollectObjects.cs" />
+    <Compile Include="UnityEngine\AI\NavMeshSurface.cs" />
+    <Compile Include="TMPro\TMP_DigitValidator.cs" />
+    <Compile Include="TMPro\TMP_PhoneNumberValidator.cs" />
+    <Compile Include="TMPro\TMP_TextEventHandler.cs" />
+    <Compile Include="TMPro\Examples\Benchmark01.cs" />
+    <Compile Include="TMPro\Examples\Benchmark01_UGUI.cs" />
+    <Compile Include="TMPro\Examples\Benchmark02.cs" />
+    <Compile Include="TMPro\Examples\Benchmark03.cs" />
+    <Compile Include="TMPro\Examples\Benchmark04.cs" />
+    <Compile Include="TMPro\Examples\CameraController.cs" />
+    <Compile Include="TMPro\Examples\ObjectSpin.cs" />
+    <Compile Include="TMPro\Examples\ShaderPropAnimator.cs" />
+    <Compile Include="TMPro\Examples\SimpleScript.cs" />
+    <Compile Include="TMPro\Examples\SkewTextExample.cs" />
+    <Compile Include="TMPro\Examples\TeleType.cs" />
+    <Compile Include="TMPro\Examples\TextConsoleSimulator.cs" />
+    <Compile Include="TMPro\Examples\TextMeshProFloatingText.cs" />
+    <Compile Include="TMPro\Examples\TextMeshSpawner.cs" />
+    <Compile Include="TMPro\Examples\TMPro_InstructionOverlay.cs" />
+    <Compile Include="TMPro\Examples\TMP_ExampleScript_01.cs" />
+    <Compile Include="TMPro\Examples\TMP_FrameRateCounter.cs" />
+    <Compile Include="TMPro\Examples\TMP_TextEventCheck.cs" />
+    <Compile Include="TMPro\Examples\TMP_TextInfoDebugTool.cs" />
+    <Compile Include="TMPro\Examples\TMP_TextSelector_A.cs" />
+    <Compile Include="TMPro\Examples\TMP_TextSelector_B.cs" />
+    <Compile Include="TMPro\Examples\TMP_UiFrameRateCounter.cs" />
+    <Compile Include="TMPro\Examples\VertexColorCycler.cs" />
+    <Compile Include="TMPro\Examples\VertexJitter.cs" />
+    <Compile Include="TMPro\Examples\VertexShakeA.cs" />
+    <Compile Include="TMPro\Examples\VertexShakeB.cs" />
+    <Compile Include="TMPro\Examples\VertexZoom.cs" />
+    <Compile Include="TMPro\Examples\WarpTextExample.cs" />
+    <Compile Include="Assets\PID.cs" />
+    <Compile Include="PixelPlay\OffScreenIndicator\OffScreenIndicatorCore.cs" />
+    <Compile Include="ScifiOffice\DemoDoor.cs" />
+    <Compile Include="ScifiOffice\DemoFirstPersonController.cs" />
+    <Compile Include="UnityTemplateProjects\SimpleCameraController.cs" />
+    <Compile Include="DentedPixel\LeanDummy.cs" />
+    <Compile Include="DentedPixel\LTExamples\PathBezier.cs" />
+    <Compile Include="DentedPixel\LTExamples\TestingUnitTests.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>
