@@ -5,23 +5,29 @@ using UnityEngine;
 namespace SpacefleetTradeMod.Patches
 {
     /// <summary>
-    /// Replaces the vanilla random resource selection in GetBestSellerAnyExceptHostile
-    /// with a profit-per-distance scoring system that accounts for travel cost.
+    /// Replaces vanilla random resource selection with profit-per-time optimization.
     ///
-    /// Score = (sellPrice - buyPrice) * min(available, cargoCapacity) / (1 + distance)
+    /// For each resource, evaluates every seller→buyer pair and scores:
+    ///   score = totalProfit / estimatedRoundTripTime
     ///
-    /// This favors nearby high-margin trades over distant ones that would burn fuel
-    /// and waste time. Distance is the straight-line distance from the trader to the
-    /// seller market (in world units).
+    /// Round trip = trader→seller + seller→buyer (the sell leg).
+    /// Travel time is estimated using brachistochrone physics:
+    ///   time ≈ 2 * sqrt(distance / (accG * gAccDay))
+    /// where gAccDay converts G to game distance units per day².
     ///
-    /// Also prevents non-tanker cargo ships from selecting fuel resources — only
-    /// traders with a virtual fuel tank (tankers) can trade fuel.
+    /// This ensures cargo ships pick the trade that makes the most credits
+    /// per unit of game time, naturally preferring nearby high-margin trades.
+    ///
+    /// Non-tanker cargo ships are blocked from trading fuel resources.
     /// </summary>
     [HarmonyPatch(typeof(GlobalMarket), nameof(GlobalMarket.GetBestSellerAnyExceptHostile))]
     public static class ProfitOptimizerPatch
     {
-        // Stash the calling Trader so we can read position and cargo capacity
         internal static Trader CallingTrader;
+
+        // gAccDay: 1G in game distance units per day².
+        // From Navigation.cs: accKkm = accG * gAccDay, where gAccDay = 73234.4f
+        private const float gAccDay = 73234.4f;
 
         static bool Prefix(
             GlobalMarket __instance,
@@ -50,9 +56,10 @@ namespace SpacefleetTradeMod.Patches
                 return false;
             }
 
-            // Get trader position and cargo capacity for distance/volume scoring
+            // Trader context
             Vector3 traderPos = Vector3.zero;
             float cargoCapacity = 100f;
+            float fleetAccG = 1f;
             bool isTanker = false;
 
             if (CallingTrader != null)
@@ -62,28 +69,35 @@ namespace SpacefleetTradeMod.Patches
                     ? CallingTrader.totalStorageSpace
                     : 100f;
                 isTanker = VirtualFuelTank.Get(CallingTrader) != null;
+
+                var fleet = CallingTrader.GetComponent<FleetManager>();
+                if (fleet != null && fleet.maxAccG > 0f)
+                    fleetAccG = fleet.maxAccG;
             }
 
             var allResources = __instance.allResources.resources;
-            Market bestMarket = null;
+            Market bestSeller = null;
             ResourceDefinition bestResource = null;
             float bestScore = 0f;
 
             foreach (var resource in allResources)
             {
-                // Non-tanker cargo ships must NOT trade fuel resources
+                // Non-tanker cargo ships must NOT trade fuel
                 if (!isTanker && VirtualFuelTank.IsFuelResource(resource))
                     continue;
 
+                // Quick filter: no arbitrage opportunity globally
                 int avgBuy = __instance.GetAverageBuyPriceOf(resource);
                 int avgSell = __instance.GetAverageSellPriceOf(resource);
                 if (avgBuy >= avgSell) continue;
 
+                // Find cheapest seller
                 Market seller = __instance.GetBestSellerFromList(resource, friendly);
                 if (seller == null) continue;
 
                 int buyPrice = seller.GetCurrentPrice(resource, true);
 
+                // Find best buyer and their price
                 int sellPrice = 0;
                 Market buyer = __instance.GetBestBuyerFromList(resource, friendly, ref sellPrice);
                 if (buyer == null || sellPrice <= buyPrice) continue;
@@ -95,25 +109,31 @@ namespace SpacefleetTradeMod.Patches
                 float volume = Mathf.Min(available, cargoCapacity);
                 float totalProfit = profitPerUnit * volume;
 
-                // Distance penalty: divide by (1 + distance) so nearby trades score higher.
-                // Distance is in world units (kkm in-game). A minimum of 1 prevents div-by-zero
-                // and means trades at the current station get full score.
+                // Estimate round-trip time: trader→seller + seller→buyer
                 float distToSeller = Vector3.Distance(traderPos, seller.transform.position);
-                float score = totalProfit / (1f + distToSeller);
+                float distSellerToBuyer = Vector3.Distance(seller.transform.position, buyer.transform.position);
+                float totalDist = distToSeller + distSellerToBuyer;
+
+                float travelTime = EstimateTravelTime(totalDist, fleetAccG);
+
+                // Add a base time for docking/trading (prevents infinite score at zero distance)
+                float totalTime = travelTime + 0.5f;
+
+                float score = totalProfit / totalTime;
 
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    bestMarket = seller;
+                    bestSeller = seller;
                     bestResource = resource;
                 }
             }
 
-            if (bestMarket != null && bestResource != null)
+            if (bestSeller != null && bestResource != null)
             {
                 refResource = bestResource;
-                __result = bestMarket;
-                Plugin.Log.LogDebug($"[ProfitOptimizer] Best trade: {bestResource.resourceName} (score: {bestScore:F0})");
+                __result = bestSeller;
+                Plugin.Log.LogDebug($"[ProfitOptimizer] Best: {bestResource.resourceName} (cr/day: {bestScore:F0})");
             }
             else
             {
@@ -122,13 +142,27 @@ namespace SpacefleetTradeMod.Patches
 
             return false;
         }
+
+        /// <summary>
+        /// Estimates travel time for a brachistochrone trajectory (accelerate half, decelerate half).
+        /// time = 2 * sqrt(distance / (accG * gAccDay))
+        /// Returns time in game days.
+        /// </summary>
+        private static float EstimateTravelTime(float distance, float accG)
+        {
+            if (distance <= 0f) return 0f;
+            float accKkm = accG * gAccDay;
+            if (accKkm <= 0f) return float.MaxValue;
+            // Half-distance accel + half-distance decel = 2 * sqrt(halfDist / (0.5 * accKkm))
+            // Simplifies to: 2 * sqrt(distance / accKkm)
+            return 2f * Mathf.Sqrt(distance / accKkm);
+        }
     }
 
     /// <summary>
-    /// Stashes the calling Trader instance before TradeCycle runs so the
-    /// ProfitOptimizerPatch can read position and cargo capacity.
-    /// For tankers, the TankerTradeCycleOverride prefix runs first and
-    /// skips the original, so this only matters for regular cargo traders.
+    /// Stashes the calling Trader before TradeCycle so ProfitOptimizerPatch
+    /// can access position, cargo capacity, and fleet acceleration.
+    /// Also blocks non-tanker cargo ships from selling fuel resources.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "TradeCycle")]
     public static class TraderContextPatch
@@ -143,7 +177,6 @@ namespace SpacefleetTradeMod.Patches
         {
             ProfitOptimizerPatch.CallingTrader = null;
 
-            // If a non-tanker cargo ship somehow selected a fuel resource, reject it
             if (__result && __instance.targetResource != null)
             {
                 bool isTanker = VirtualFuelTank.Get(__instance) != null;

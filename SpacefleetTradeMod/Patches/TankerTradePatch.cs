@@ -344,9 +344,18 @@ namespace SpacefleetTradeMod.Patches
                     float volume = Mathf.Min(available, __instance.totalStorageSpace);
                     float totalProfit = profitPerUnit * volume;
 
-                    // Distance penalty: favor nearby sellers
+                    // Round-trip time: trader→seller + seller→buyer
                     float distToSeller = Vector3.Distance(__instance.transform.position, seller.transform.position);
-                    float score = totalProfit / (1f + distToSeller);
+                    float distSellerToBuyer = Vector3.Distance(seller.transform.position, buyer.transform.position);
+                    float totalDist = distToSeller + distSellerToBuyer;
+
+                    var fleet = __instance.GetComponent<FleetManager>();
+                    float accG = (fleet != null && fleet.maxAccG > 0f) ? fleet.maxAccG : 1f;
+                    float accKkm = accG * 73234.4f;
+                    float travelTime = totalDist > 0f ? 2f * Mathf.Sqrt(totalDist / accKkm) : 0f;
+                    float totalTime = travelTime + 0.5f;
+
+                    float score = totalProfit / totalTime;
                     if (score > bestScore)
                     {
                         bestScore = score;
