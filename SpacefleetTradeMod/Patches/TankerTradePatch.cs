@@ -181,25 +181,145 @@ namespace SpacefleetTradeMod.Patches
     }
 
     /// <summary>
-    /// After TradeCycle selects a resource to trade, reject it if this trader has a
-    /// virtual fuel tank and the selected resource isn't DH or DT fuel.
-    /// This ensures tankers only trade the fuel types they're meant to carry.
+    /// Completely replaces TradeCycle for tankers that have a virtual fuel tank.
+    /// Only evaluates DT_FUEL and DH_FUEL — no other resources are considered.
+    /// This prevents the profit optimizer from picking non-fuel trades.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "TradeCycle")]
-    public static class TankerTradeCycleFilter
+    public static class TankerTradeCycleOverride
     {
-        static void Postfix(Trader __instance, ref bool __result)
+        static bool Prefix(Trader __instance, ref bool __result)
         {
-            if (!__result) return; // Already failed, nothing to filter
-
             var tank = VirtualFuelTank.Get(__instance);
-            if (tank == null) return; // Not a tanker with virtual tank
+            if (tank == null) return true; // Not a tanker — let original + profit optimizer run
 
-            // If the selected resource isn't a tradeable fuel type, reject this cycle
-            if (!VirtualFuelTank.IsFuelResource(__instance.targetResource))
+            if (!__instance.isTrading)
             {
                 __result = false;
+                return false;
             }
+
+            __instance.targetMarket = null;
+            __instance.bestSellPrice = 0;
+            __instance.SetCargoStorages();
+
+            __instance.targetResource = null;
+            __instance.targetQuantity = 0f;
+            __instance.totalStorageSpace = 0f;
+
+            // Check what's in our cargo (virtual tank + any cargo modules)
+            bool hasCargo = false;
+            foreach (var cargoStorage in __instance.cargoStorages)
+            {
+                if (cargoStorage.GetTotalQuantity() > 0f)
+                {
+                    var res = cargoStorage.GetResource();
+                    if (res != null && VirtualFuelTank.IsFuelResource(res))
+                    {
+                        if (__instance.targetResource == null)
+                        {
+                            hasCargo = true;
+                            __instance.targetResource = res;
+                            __instance.targetQuantity += cargoStorage.GetQuantityOf(res);
+                        }
+                        else if (res == __instance.targetResource)
+                        {
+                            __instance.targetQuantity += cargoStorage.GetQuantityOf(res);
+                        }
+                    }
+                }
+                __instance.totalStorageSpace += cargoStorage.storageMax;
+            }
+
+            if (__instance.totalStorageSpace == 0f)
+            {
+                __result = false;
+                return false;
+            }
+
+            var gm = GlobalMarket.current;
+            var factionID = __instance.GetComponent<Track>().GetFaction().factionID;
+            var fm = Traverse.Create(gm).Field("fm").GetValue<FactionsManager>();
+            var hostiles = fm.GetFactionFromID(factionID).GetHostiles();
+            var allMarkets = Traverse.Create(gm).Field("allMarkets").GetValue<List<Market>>();
+
+            // Build friendly market list
+            var friendly = new List<Market>();
+            foreach (var m in allMarkets)
+            {
+                if (m != null && !hostiles.Contains(m.thisFaction.factionID))
+                    friendly.Add(m);
+            }
+
+            if (hasCargo && __instance.targetResource != null && __instance.targetQuantity > 0f)
+            {
+                // SELLING — find best buyer for the fuel we're carrying
+                __instance.isBuying = false;
+                int bestPrice = 0;
+                __instance.targetMarket = gm.GetBestBuyerFromList(__instance.targetResource, friendly, ref bestPrice);
+                __instance.bestSellPrice = bestPrice > 0 ? bestPrice : 1;
+                __instance.profitMargin = 1f - (float)__instance.buyPrice / (float)__instance.bestSellPrice;
+
+                if (__instance.bestSellPrice < __instance.buyPrice * (1f + __instance.currentMinProfitMargin))
+                {
+                    __instance.currentMinProfitMargin /= 2f;
+                    if (__instance.currentMinProfitMargin < 0.001f)
+                        __instance.currentMinProfitMargin = -100000f;
+                    __result = false;
+                    return false;
+                }
+                __instance.currentMinProfitMargin = __instance.minProfitMargin;
+            }
+            else
+            {
+                // BUYING — only consider DT_FUEL and DH_FUEL
+                __instance.isBuying = true;
+                __instance.targetResource = null;
+                __instance.targetQuantity = __instance.totalStorageSpace;
+
+                var dtFuel = gm.allResources.GetResource(ResourceType.DT_FUEL);
+                var dhFuel = gm.allResources.GetResource(ResourceType.DH_FUEL);
+
+                Market bestMarket = null;
+                ResourceDefinition bestResource = null;
+                float bestScore = 0f;
+
+                foreach (var fuel in new[] { dtFuel, dhFuel })
+                {
+                    if (fuel == null) continue;
+
+                    Market seller = gm.GetBestSellerFromList(fuel, friendly);
+                    if (seller == null) continue;
+
+                    int buyPrice = seller.GetCurrentPrice(fuel, true);
+
+                    int sellPrice = 0;
+                    Market buyer = gm.GetBestBuyerFromList(fuel, friendly, ref sellPrice);
+                    if (buyer == null || sellPrice <= buyPrice) continue;
+
+                    float available = seller.GetQuantityAvailable(fuel);
+                    if (available <= 0f) continue;
+
+                    float score = (sellPrice - buyPrice) * Mathf.Min(available, 100f);
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestMarket = seller;
+                        bestResource = fuel;
+                    }
+                }
+
+                if (bestMarket != null && bestResource != null)
+                {
+                    __instance.targetMarket = bestMarket;
+                    __instance.targetResource = bestResource;
+                }
+            }
+
+            __result = __instance.targetMarket != null
+                    && __instance.targetResource != null
+                    && __instance.targetQuantity != 0f;
+            return false; // Skip original TradeCycle entirely
         }
     }
 
