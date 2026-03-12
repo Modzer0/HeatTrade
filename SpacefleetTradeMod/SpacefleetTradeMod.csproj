@@ -2,9 +2,15 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>SpacefleetTradeMod</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <!-- Output DLL with version in filename -->
+  <Target Name="CopyVersionedDll" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)SpacefleetTradeMod.dll"
+          DestinationFiles="$(OutputPath)SpacefleetTradeMod_v$(Version).dll" />
+  </Target>
 
   <!-- Set GameDir to your Spacefleet install path -->
   <PropertyGroup>
