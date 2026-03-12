@@ -10,13 +10,11 @@ namespace SpacefleetTradeMod.Patches
     ///
     /// A hidden GameObject with a real ResourceInventory component is created per Trader.
     /// This virtual tank is injected into cargoStorages so TradeCycle discovers fuel cargo.
-    /// ModifyResourceInCargo is patched to route fuel add/remove through the virtual tank
-    /// instead of the ship's actual CARGO modules (which don't hold fuel) or FUEL modules
-    /// (which are the propulsion supply).
+    /// ModifyResourceInCargo is patched (in ProfitOptimizerPatch.cs) to route fuel
+    /// add/remove through the virtual tank for tankers, and block fuel for non-tankers.
     /// </summary>
     public static class VirtualFuelTank
     {
-        // Map each Trader instance to its virtual fuel tank inventory
         private static readonly Dictionary<Trader, ResourceInventory> tanks = new Dictionary<Trader, ResourceInventory>();
 
         private static readonly HashSet<ResourceType> fuelTypes = new HashSet<ResourceType>
@@ -34,12 +32,10 @@ namespace SpacefleetTradeMod.Patches
         {
             if (tanks.TryGetValue(trader, out var existing) && existing != null)
             {
-                // Update capacity in case fleet changed
                 existing.SetStorageMax(capacity);
                 return existing;
             }
 
-            // Create a hidden GameObject that lives as a child of the Trader
             var go = new GameObject($"VirtualFuelTank_{trader.GetInstanceID()}");
             go.transform.SetParent(trader.transform);
             go.hideFlags = HideFlags.HideAndDontSave;
@@ -50,7 +46,7 @@ namespace SpacefleetTradeMod.Patches
             inv.InitResources();
 
             tanks[trader] = inv;
-            Plugin.Log.LogInfo($"Created virtual fuel tank for {trader.name} with capacity {capacity}");
+            Plugin.Log.LogInfo($"Created virtual fuel tank for {trader.name} capacity={capacity}");
             return inv;
         }
 
@@ -72,23 +68,18 @@ namespace SpacefleetTradeMod.Patches
     }
 
     /// <summary>
-    /// After SetCargoStorages collects CARGO modules, we inject the virtual fuel tank.
+    /// After SetCargoStorages collects CARGO modules, inject the virtual fuel tank.
     /// Tank capacity = sum of all FUEL module storage across the fleet (configurable multiplier).
-    /// Also suppresses the "No cargo ships in fleet!" warning for tankers since
-    /// the virtual tank counts as cargo.
     /// </summary>
     [HarmonyPatch(typeof(Trader), nameof(Trader.SetCargoStorages))]
     public static class TankerSetCargoPatch
     {
-        // Prefix: temporarily add a dummy to prevent the "No cargo" notification
-        // from firing inside the original method for tanker fleets.
         static void Prefix(Trader __instance, out bool __state)
         {
             __state = false;
             var fleet = __instance.GetComponent<FleetManager>();
             if (fleet == null) return;
 
-            // Check if this fleet has fuel modules (i.e. is a tanker)
             foreach (var ship in fleet.ships)
             {
                 if (ship.GetModulesOfType(PartType.FUEL).Count > 0)
@@ -104,7 +95,6 @@ namespace SpacefleetTradeMod.Patches
             var fleet = __instance.GetComponent<FleetManager>();
             if (fleet == null) return;
 
-            // Calculate total fuel module capacity across the fleet
             float totalFuelCapacity = 0f;
             foreach (var ship in fleet.ships)
             {
@@ -121,7 +111,6 @@ namespace SpacefleetTradeMod.Patches
             float tankCapacity = totalFuelCapacity * Plugin.VirtualTankCapacityMultiplier.Value;
             var virtualTank = VirtualFuelTank.GetOrCreate(__instance, tankCapacity);
 
-            // Add to cargoStorages if not already present
             if (!__instance.cargoStorages.Contains(virtualTank))
             {
                 __instance.cargoStorages.Add(virtualTank);
@@ -131,105 +120,33 @@ namespace SpacefleetTradeMod.Patches
     }
 
     /// <summary>
-    /// Suppress the "No cargo ships in fleet!" notification for tanker fleets
-    /// that have a virtual fuel tank. The original Notify fires inside SetCargoStorages
-    /// before our postfix can add the virtual tank.
+    /// Suppress "No cargo ships in fleet!" notification for tanker fleets.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "Notify")]
     public static class TankerSuppressNoCargoWarning
     {
         static bool Prefix(Trader __instance, string message)
         {
-            // Only suppress the specific "no cargo" warning for tankers
             if (message != null && message.Contains("No cargo") && VirtualFuelTank.Get(__instance) != null)
-                return false; // Skip notification
+                return false;
             return true;
         }
     }
 
     /// <summary>
-    /// Patch ModifyResourceInCargo to route fuel resources through the virtual tank
-    /// instead of the ship's CARGO modules (which normally don't hold fuel).
-    /// 
-    /// The original method iterates fleet.ships → GetModulesOfType(CARGO) → AddCargo/RemoveCargo.
-    /// We intercept: if the resource is a fuel type and a virtual tank exists, we handle it
-    /// ourselves and skip the original method.
-    /// </summary>
-    [HarmonyPatch(typeof(Trader), "ModifyResourceInCargo")]
-    public static class TankerModifyResourcePatch
-    {
-        static bool Prefix(Trader __instance, ResourceDefinition resource, float quantity)
-        {
-            if (!VirtualFuelTank.IsFuelResource(resource))
-                return true; // Not fuel — let original handle it
-
-            var tank = VirtualFuelTank.Get(__instance);
-            if (tank == null)
-                return true; // No virtual tank — let original handle it
-
-            bool adding = quantity >= 0f;
-            if (adding)
-            {
-                float added = tank.AddResource(resource, quantity);
-                quantity -= added;
-
-                // If virtual tank is full, overflow into regular cargo modules
-                if (quantity > 0f)
-                    FallbackToCargoModules(__instance, resource, quantity);
-            }
-            else
-            {
-                float absQty = Mathf.Abs(quantity);
-                float removed = tank.RemoveResource(resource, absQty);
-                absQty -= removed;
-
-                // If virtual tank didn't have enough, pull from regular cargo too
-                if (absQty > 0f)
-                    FallbackToCargoModules(__instance, resource, -absQty);
-            }
-
-            return false; // Skip original
-        }
-
-        private static void FallbackToCargoModules(Trader trader, ResourceDefinition resource, float quantity)
-        {
-            var fleet = trader.GetComponent<FleetManager>();
-            if (fleet == null) return;
-
-            bool adding = quantity >= 0f;
-            foreach (var ship in fleet.ships)
-            {
-                foreach (var module in ship.GetModulesOfType(PartType.CARGO))
-                {
-                    if (adding)
-                    {
-                        float added = module.AddCargo(resource, quantity);
-                        quantity -= added;
-                        if (quantity <= 0f) return;
-                    }
-                    else
-                    {
-                        float removed = module.RemoveCargo(resource, Mathf.Abs(quantity));
-                        quantity += removed;
-                        if (quantity >= 0f) return;
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
     /// Completely replaces TradeCycle for tankers that have a virtual fuel tank.
-    /// Only evaluates DT_FUEL and DH_FUEL — no other resources are considered.
-    /// This prevents the profit optimizer from picking non-fuel trades.
+    /// Only evaluates DT_FUEL and DH_FUEL. Targets 15% profit margin when possible.
+    /// Sets buyPrice/bestSellPrice so the UI displays correct values.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "TradeCycle")]
     public static class TankerTradeCycleOverride
     {
+        private const float MinProfitMarginPct = 0.15f;
+
         static bool Prefix(Trader __instance, ref bool __result)
         {
             var tank = VirtualFuelTank.Get(__instance);
-            if (tank == null) return true; // Not a tanker — let original + profit optimizer run
+            if (tank == null) return true; // Not a tanker
 
             if (!__instance.isTrading)
             {
@@ -245,7 +162,7 @@ namespace SpacefleetTradeMod.Patches
             __instance.targetQuantity = 0f;
             __instance.totalStorageSpace = 0f;
 
-            // Check what's in our cargo (virtual tank + any cargo modules)
+            // Check what fuel is in cargo (virtual tank + any cargo modules)
             bool hasCargo = false;
             foreach (var cargoStorage in __instance.cargoStorages)
             {
@@ -281,7 +198,6 @@ namespace SpacefleetTradeMod.Patches
             var hostiles = fm.GetFactionFromID(factionID).GetHostiles();
             var allMarkets = Traverse.Create(gm).Field("allMarkets").GetValue<List<Market>>();
 
-            // Build friendly market list
             var friendly = new List<Market>();
             foreach (var m in allMarkets)
             {
@@ -296,7 +212,9 @@ namespace SpacefleetTradeMod.Patches
                 int bestPrice = 0;
                 __instance.targetMarket = gm.GetBestBuyerFromList(__instance.targetResource, friendly, ref bestPrice);
                 __instance.bestSellPrice = bestPrice > 0 ? bestPrice : 1;
-                __instance.profitMargin = 1f - (float)__instance.buyPrice / (float)__instance.bestSellPrice;
+                __instance.profitMargin = __instance.buyPrice > 0
+                    ? 1f - (float)__instance.buyPrice / (float)__instance.bestSellPrice
+                    : 0f;
 
                 if (__instance.bestSellPrice < __instance.buyPrice * (1f + __instance.currentMinProfitMargin))
                 {
@@ -310,7 +228,7 @@ namespace SpacefleetTradeMod.Patches
             }
             else
             {
-                // BUYING — only consider DT_FUEL and DH_FUEL
+                // BUYING — only consider DT_FUEL and DH_FUEL with 15% margin preference
                 __instance.isBuying = true;
                 __instance.targetResource = null;
                 __instance.targetQuantity = __instance.totalStorageSpace;
@@ -322,7 +240,14 @@ namespace SpacefleetTradeMod.Patches
                 ResourceDefinition bestResource = null;
                 float bestScore = float.MinValue;
                 int bestBuyPrice = 0;
-                int bestSellPrice = 0;
+                int bestSellPriceVal = 0;
+
+                // Fallback for trades below 15% margin
+                Market fallbackMarket = null;
+                ResourceDefinition fallbackResource = null;
+                float fallbackScore = float.MinValue;
+                int fallbackBuyPrice = 0;
+                int fallbackSellPrice = 0;
 
                 foreach (var fuel in new[] { dtFuel, dhFuel })
                 {
@@ -344,7 +269,6 @@ namespace SpacefleetTradeMod.Patches
                     float volume = Mathf.Min(available, __instance.totalStorageSpace);
                     float totalProfit = profitPerUnit * volume;
 
-                    // Time as tiebreaker only
                     float distToSeller = Vector3.Distance(__instance.transform.position, seller.transform.position);
                     float distSellerToBuyer = Vector3.Distance(seller.transform.position, buyer.transform.position);
                     var fleet = __instance.GetComponent<FleetManager>();
@@ -353,36 +277,64 @@ namespace SpacefleetTradeMod.Patches
                     float timeTiebreaker = 1f / (1f + travelDays);
 
                     float score = totalProfit + timeTiebreaker;
-                    if (score > bestScore)
+                    bool meetsMargin = sellPriceAt >= buyPriceAt * (1f + MinProfitMarginPct);
+
+                    if (meetsMargin)
                     {
-                        bestScore = score;
-                        bestMarket = seller;
-                        bestResource = fuel;
-                        bestBuyPrice = buyPriceAt;
-                        bestSellPrice = sellPriceAt;
+                        if (score > bestScore)
+                        {
+                            bestScore = score;
+                            bestMarket = seller;
+                            bestResource = fuel;
+                            bestBuyPrice = buyPriceAt;
+                            bestSellPriceVal = sellPriceAt;
+                        }
+                    }
+                    else
+                    {
+                        if (score > fallbackScore)
+                        {
+                            fallbackScore = score;
+                            fallbackMarket = seller;
+                            fallbackResource = fuel;
+                            fallbackBuyPrice = buyPriceAt;
+                            fallbackSellPrice = sellPriceAt;
+                        }
                     }
                 }
 
+                // Prefer 15%+ margin trades; fall back if none available
                 if (bestMarket != null && bestResource != null)
                 {
                     __instance.targetMarket = bestMarket;
                     __instance.targetResource = bestResource;
                     __instance.buyPrice = bestBuyPrice;
-                    __instance.bestSellPrice = bestSellPrice;
-                    __instance.profitMargin = 1f - (float)bestBuyPrice / (float)bestSellPrice;
+                    __instance.bestSellPrice = bestSellPriceVal;
+                    __instance.profitMargin = 1f - (float)bestBuyPrice / (float)bestSellPriceVal;
+                    Plugin.Log.LogDebug($"[TankerTrade] Buy {bestResource.resourceName} at {bestBuyPrice}, sell at {bestSellPriceVal}, margin={__instance.profitMargin:P1}");
+                }
+                else if (fallbackMarket != null && fallbackResource != null)
+                {
+                    __instance.targetMarket = fallbackMarket;
+                    __instance.targetResource = fallbackResource;
+                    __instance.buyPrice = fallbackBuyPrice;
+                    __instance.bestSellPrice = fallbackSellPrice;
+                    __instance.profitMargin = fallbackBuyPrice > 0
+                        ? 1f - (float)fallbackBuyPrice / (float)fallbackSellPrice
+                        : 0f;
+                    Plugin.Log.LogDebug($"[TankerTrade] Fallback: {fallbackResource.resourceName} buy={fallbackBuyPrice} sell={fallbackSellPrice}");
                 }
             }
 
             __result = __instance.targetMarket != null
                     && __instance.targetResource != null
                     && __instance.targetQuantity != 0f;
-            return false; // Skip original TradeCycle entirely
+            return false;
         }
     }
 
     /// <summary>
-    /// Recalculate fleet DV after any trade completes, since fuel trading
-    /// could affect fleet mass calculations indirectly.
+    /// Recalculate fleet DV after any trade completes.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "Trade")]
     public static class TankerDvUpdatePatch

@@ -16,12 +16,18 @@ namespace SpacefleetTradeMod.Patches
     /// breaks ties between trades with similar profit.
     ///
     /// Non-tanker cargo ships are hard-blocked from fuel resources at every level.
+    /// Trades must meet a 15% profit margin threshold when possible.
     /// </summary>
     [HarmonyPatch(typeof(GlobalMarket), nameof(GlobalMarket.GetBestSellerAnyExceptHostile))]
     public static class ProfitOptimizerPatch
     {
         internal static Trader CallingTrader;
         private const float gAccDay = 73234.4f;
+        private const float MinProfitMarginPct = 0.15f;
+
+        // Stored by the patch so TradeCycle postfix can set prices on the Trader
+        internal static int LastBuyPrice;
+        internal static int LastSellPrice;
 
         static bool Prefix(
             GlobalMarket __instance,
@@ -30,6 +36,9 @@ namespace SpacefleetTradeMod.Patches
             int mainFactionID,
             ref Market __result)
         {
+            LastBuyPrice = 0;
+            LastSellPrice = 0;
+
             var fm = Traverse.Create(__instance).Field("fm").GetValue<FactionsManager>();
             if (fm == null) return true;
 
@@ -68,9 +77,20 @@ namespace SpacefleetTradeMod.Patches
             }
 
             var allResources = __instance.allResources.resources;
+
+            // Two-pass: first try trades meeting 15% margin, then fallback to any profitable
             Market bestSeller = null;
             ResourceDefinition bestResource = null;
             float bestScore = float.MinValue;
+            int bestBuy = 0;
+            int bestSell = 0;
+
+            // Fallback candidates (profitable but below 15%)
+            Market fallbackSeller = null;
+            ResourceDefinition fallbackResource = null;
+            float fallbackScore = float.MinValue;
+            int fallbackBuy = 0;
+            int fallbackSell = 0;
 
             foreach (var resource in allResources)
             {
@@ -104,22 +124,53 @@ namespace SpacefleetTradeMod.Patches
                 float travelDays = EstimateTravelTime(distToSeller + distSellerToBuyer, fleetAccG);
                 float timeTiebreaker = 1f / (1f + travelDays);
 
-                // Primary: total profit. Tiebreaker: faster trips win among equal profit.
                 float score = totalProfit + timeTiebreaker;
 
-                if (score > bestScore)
+                bool meetsMargin = sellPrice >= buyPrice * (1f + MinProfitMarginPct);
+
+                if (meetsMargin)
                 {
-                    bestScore = score;
-                    bestSeller = seller;
-                    bestResource = resource;
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestSeller = seller;
+                        bestResource = resource;
+                        bestBuy = buyPrice;
+                        bestSell = sellPrice;
+                    }
+                }
+                else
+                {
+                    // Track best fallback in case nothing meets 15%
+                    if (score > fallbackScore)
+                    {
+                        fallbackScore = score;
+                        fallbackSeller = seller;
+                        fallbackResource = resource;
+                        fallbackBuy = buyPrice;
+                        fallbackSell = sellPrice;
+                    }
                 }
             }
 
+            // Prefer 15%+ trades; fall back to best available if none qualify
             if (bestSeller != null && bestResource != null)
             {
                 refResource = bestResource;
                 __result = bestSeller;
-                Plugin.Log.LogDebug($"[ProfitOptimizer] Best: {bestResource.resourceName} profit={bestScore:F0}");
+                LastBuyPrice = bestBuy;
+                LastSellPrice = bestSell;
+                float margin = (float)(bestSell - bestBuy) / bestBuy * 100f;
+                Plugin.Log.LogDebug($"[ProfitOptimizer] Best: {bestResource.resourceName} buy={bestBuy} sell={bestSell} margin={margin:F1}% profit={bestScore:F0}");
+            }
+            else if (fallbackSeller != null && fallbackResource != null)
+            {
+                refResource = fallbackResource;
+                __result = fallbackSeller;
+                LastBuyPrice = fallbackBuy;
+                LastSellPrice = fallbackSell;
+                float margin = (float)(fallbackSell - fallbackBuy) / Mathf.Max(1, fallbackBuy) * 100f;
+                Plugin.Log.LogDebug($"[ProfitOptimizer] Fallback: {fallbackResource.resourceName} buy={fallbackBuy} sell={fallbackSell} margin={margin:F1}%");
             }
             else
             {
@@ -140,7 +191,8 @@ namespace SpacefleetTradeMod.Patches
 
     /// <summary>
     /// Stashes the calling Trader before TradeCycle runs.
-    /// Postfix hard-blocks fuel trades for non-tankers as a safety net.
+    /// Postfix sets buyPrice/bestSellPrice on the Trader after the buying branch,
+    /// and hard-blocks fuel trades for non-tankers as a safety net.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "TradeCycle")]
     public static class TraderContextPatch
@@ -158,33 +210,103 @@ namespace SpacefleetTradeMod.Patches
             if (__result && __instance.targetResource != null)
             {
                 bool isTanker = VirtualFuelTank.Get(__instance) != null;
+
+                // Hard block: non-tankers must never trade fuel
                 if (!isTanker && VirtualFuelTank.IsFuelResource(__instance.targetResource))
                 {
+                    Plugin.Log.LogWarning($"[TraderContext] Blocked fuel trade for non-tanker {__instance.name}: {__instance.targetResource.resourceName}");
                     __result = false;
+                    return;
+                }
+
+                // Set buy/sell prices from the optimizer so the UI displays them
+                if (__instance.isBuying && ProfitOptimizerPatch.LastBuyPrice > 0)
+                {
+                    __instance.buyPrice = ProfitOptimizerPatch.LastBuyPrice;
+                    __instance.bestSellPrice = ProfitOptimizerPatch.LastSellPrice;
+                    if (__instance.bestSellPrice > 0 && __instance.buyPrice > 0)
+                    {
+                        __instance.profitMargin = 1f - (float)__instance.buyPrice / (float)__instance.bestSellPrice;
+                    }
+                    Plugin.Log.LogDebug($"[TraderContext] Set prices for {__instance.name}: buy={__instance.buyPrice} sell={__instance.bestSellPrice} margin={__instance.profitMargin:P1}");
                 }
             }
         }
     }
 
     /// <summary>
-    /// Hard block: prevent non-tanker cargo ships from ever adding fuel to their cargo.
-    /// Even if some code path bypasses the optimizer filter, this ensures fuel never
-    /// enters a regular cargo ship's hold.
+    /// Consolidated fuel cargo block for ModifyResourceInCargo.
+    /// Non-tankers cannot add fuel to cargo. Tankers route fuel through virtual tank.
+    /// Single patch avoids Harmony prefix chaining issues.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "ModifyResourceInCargo")]
-    public static class BlockCargoFuelPatch
+    public static class ModifyResourceInCargoPatch
     {
-        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyPriority(Priority.First)]
         static bool Prefix(Trader __instance, ResourceDefinition resource, float quantity)
         {
-            // Only block ADDING fuel to non-tankers
-            if (quantity <= 0f) return true; // selling/removing is fine
-            if (!VirtualFuelTank.IsFuelResource(resource)) return true; // not fuel
-            if (VirtualFuelTank.Get(__instance) != null) return true; // tanker, let TankerModifyResourcePatch handle it
+            if (!VirtualFuelTank.IsFuelResource(resource))
+                return true; // Not fuel — let original handle it
 
-            // Non-tanker trying to add fuel to cargo — block it
-            Plugin.Log.LogWarning($"[FuelBlock] Blocked {resource.resourceName} from entering cargo on {__instance.name}");
-            return false;
+            var tank = VirtualFuelTank.Get(__instance);
+
+            if (tank != null)
+            {
+                // Tanker: route through virtual tank
+                bool adding = quantity >= 0f;
+                if (adding)
+                {
+                    float added = tank.AddResource(resource, quantity);
+                    quantity -= added;
+                    if (quantity > 0f)
+                        FallbackToCargoModules(__instance, resource, quantity);
+                }
+                else
+                {
+                    float absQty = Mathf.Abs(quantity);
+                    float removed = tank.RemoveResource(resource, absQty);
+                    absQty -= removed;
+                    if (absQty > 0f)
+                        FallbackToCargoModules(__instance, resource, -absQty);
+                }
+                return false; // Skip original
+            }
+
+            // Non-tanker trying to add fuel — block it
+            if (quantity > 0f)
+            {
+                Plugin.Log.LogWarning($"[FuelBlock] Blocked {resource.resourceName} x{quantity:F1} from entering cargo on {__instance.name}");
+                return false;
+            }
+
+            // Removing/selling fuel from non-tanker is fine (shouldn't happen but safe)
+            return true;
+        }
+
+        private static void FallbackToCargoModules(Trader trader, ResourceDefinition resource, float quantity)
+        {
+            var fleet = trader.GetComponent<FleetManager>();
+            if (fleet == null) return;
+
+            bool adding = quantity >= 0f;
+            foreach (var ship in fleet.ships)
+            {
+                foreach (var module in ship.GetModulesOfType(PartType.CARGO))
+                {
+                    if (adding)
+                    {
+                        float added = module.AddCargo(resource, quantity);
+                        quantity -= added;
+                        if (quantity <= 0f) return;
+                    }
+                    else
+                    {
+                        float removed = module.RemoveCargo(resource, Mathf.Abs(quantity));
+                        quantity += removed;
+                        if (quantity >= 0f) return;
+                    }
+                }
+            }
         }
     }
 }
