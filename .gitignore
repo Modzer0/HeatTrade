@@ -11,11 +11,8 @@ SpacefleetTradeMod/obj/
 Thumbs.db
 .DS_Store
 
-# Decompiled PDB (large binary)
-Decompile/Assembly-CSharp/Assembly-CSharp.pdb
+# Decompiled source (not our code)
+Decompile/
 
 # BepInEx distribution binaries (not our code)
 BepInEx_win_x64_*/
-
-# Decompiled lib DLLs (Unity engine references)
-Decompile/Assembly-CSharp/lib/
