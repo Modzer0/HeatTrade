@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>SpacefleetTradeMod</AssemblyName>
+    <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
