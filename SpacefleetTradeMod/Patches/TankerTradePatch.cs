@@ -74,11 +74,32 @@ namespace SpacefleetTradeMod.Patches
     /// <summary>
     /// After SetCargoStorages collects CARGO modules, we inject the virtual fuel tank.
     /// Tank capacity = sum of all FUEL module storage across the fleet (configurable multiplier).
+    /// Also suppresses the "No cargo ships in fleet!" warning for tankers since
+    /// the virtual tank counts as cargo.
     /// </summary>
     [HarmonyPatch(typeof(Trader), nameof(Trader.SetCargoStorages))]
     public static class TankerSetCargoPatch
     {
-        static void Postfix(Trader __instance)
+        // Prefix: temporarily add a dummy to prevent the "No cargo" notification
+        // from firing inside the original method for tanker fleets.
+        static void Prefix(Trader __instance, out bool __state)
+        {
+            __state = false;
+            var fleet = __instance.GetComponent<FleetManager>();
+            if (fleet == null) return;
+
+            // Check if this fleet has fuel modules (i.e. is a tanker)
+            foreach (var ship in fleet.ships)
+            {
+                if (ship.GetModulesOfType(PartType.FUEL).Count > 0)
+                {
+                    __state = true;
+                    return;
+                }
+            }
+        }
+
+        static void Postfix(Trader __instance, bool __state)
         {
             var fleet = __instance.GetComponent<FleetManager>();
             if (fleet == null) return;
@@ -106,6 +127,23 @@ namespace SpacefleetTradeMod.Patches
                 __instance.cargoStorages.Add(virtualTank);
                 __instance.totalStorageSpace += virtualTank.storageMax;
             }
+        }
+    }
+
+    /// <summary>
+    /// Suppress the "No cargo ships in fleet!" notification for tanker fleets
+    /// that have a virtual fuel tank. The original Notify fires inside SetCargoStorages
+    /// before our postfix can add the virtual tank.
+    /// </summary>
+    [HarmonyPatch(typeof(Trader), "Notify")]
+    public static class TankerSuppressNoCargoWarning
+    {
+        static bool Prefix(Trader __instance, string message)
+        {
+            // Only suppress the specific "no cargo" warning for tankers
+            if (message != null && message.Contains("No cargo") && VirtualFuelTank.Get(__instance) != null)
+                return false; // Skip notification
+            return true;
         }
     }
 
@@ -283,6 +321,8 @@ namespace SpacefleetTradeMod.Patches
                 Market bestMarket = null;
                 ResourceDefinition bestResource = null;
                 float bestScore = 0f;
+                int bestBuyPrice = 0;
+                int bestSellPrice = 0;
 
                 foreach (var fuel in new[] { dtFuel, dhFuel })
                 {
@@ -291,21 +331,23 @@ namespace SpacefleetTradeMod.Patches
                     Market seller = gm.GetBestSellerFromList(fuel, friendly);
                     if (seller == null) continue;
 
-                    int buyPrice = seller.GetCurrentPrice(fuel, true);
+                    int buyPriceAt = seller.GetCurrentPrice(fuel, true);
 
-                    int sellPrice = 0;
-                    Market buyer = gm.GetBestBuyerFromList(fuel, friendly, ref sellPrice);
-                    if (buyer == null || sellPrice <= buyPrice) continue;
+                    int sellPriceAt = 0;
+                    Market buyer = gm.GetBestBuyerFromList(fuel, friendly, ref sellPriceAt);
+                    if (buyer == null || sellPriceAt <= buyPriceAt) continue;
 
                     float available = seller.GetQuantityAvailable(fuel);
                     if (available <= 0f) continue;
 
-                    float score = (sellPrice - buyPrice) * Mathf.Min(available, 100f);
+                    float score = (sellPriceAt - buyPriceAt) * Mathf.Min(available, 100f);
                     if (score > bestScore)
                     {
                         bestScore = score;
                         bestMarket = seller;
                         bestResource = fuel;
+                        bestBuyPrice = buyPriceAt;
+                        bestSellPrice = sellPriceAt;
                     }
                 }
 
@@ -313,6 +355,9 @@ namespace SpacefleetTradeMod.Patches
                 {
                     __instance.targetMarket = bestMarket;
                     __instance.targetResource = bestResource;
+                    __instance.buyPrice = bestBuyPrice;
+                    __instance.bestSellPrice = bestSellPrice;
+                    __instance.profitMargin = 1f - (float)bestBuyPrice / (float)bestSellPrice;
                 }
             }
 
