@@ -6,7 +6,7 @@ namespace SpacefleetTradeMod.Patches
 {
     /// <summary>
     /// Manages a virtual fuel cargo tank per Trader so tanker fleets can trade
-    /// fuel (DT, DH, Volatiles, Antimatter) without touching their propulsion supply.
+    /// DT and DH fuel without touching their propulsion supply.
     ///
     /// A hidden GameObject with a real ResourceInventory component is created per Trader.
     /// This virtual tank is injected into cargoStorages so TradeCycle discovers fuel cargo.
@@ -22,9 +22,7 @@ namespace SpacefleetTradeMod.Patches
         private static readonly HashSet<ResourceType> fuelTypes = new HashSet<ResourceType>
         {
             ResourceType.DT_FUEL,
-            ResourceType.DH_FUEL,
-            ResourceType.VOLATILES,
-            ResourceType.ANTIMATTER
+            ResourceType.DH_FUEL
         };
 
         public static bool IsFuelResource(ResourceDefinition res)
@@ -178,6 +176,29 @@ namespace SpacefleetTradeMod.Patches
                         if (quantity >= 0f) return;
                     }
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// After TradeCycle selects a resource to trade, reject it if this trader has a
+    /// virtual fuel tank and the selected resource isn't DH or DT fuel.
+    /// This ensures tankers only trade the fuel types they're meant to carry.
+    /// </summary>
+    [HarmonyPatch(typeof(Trader), "TradeCycle")]
+    public static class TankerTradeCycleFilter
+    {
+        static void Postfix(Trader __instance, ref bool __result)
+        {
+            if (!__result) return; // Already failed, nothing to filter
+
+            var tank = VirtualFuelTank.Get(__instance);
+            if (tank == null) return; // Not a tanker with virtual tank
+
+            // If the selected resource isn't a tradeable fuel type, reject this cycle
+            if (!VirtualFuelTank.IsFuelResource(__instance.targetResource))
+            {
+                __result = false;
             }
         }
     }
