@@ -340,7 +340,13 @@ namespace SpacefleetTradeMod.Patches
                     float available = seller.GetQuantityAvailable(fuel);
                     if (available <= 0f) continue;
 
-                    float score = (sellPriceAt - buyPriceAt) * Mathf.Min(available, 100f);
+                    float profitPerUnit = sellPriceAt - buyPriceAt;
+                    float volume = Mathf.Min(available, __instance.totalStorageSpace);
+                    float totalProfit = profitPerUnit * volume;
+
+                    // Distance penalty: favor nearby sellers
+                    float distToSeller = Vector3.Distance(__instance.transform.position, seller.transform.position);
+                    float score = totalProfit / (1f + distToSeller);
                     if (score > bestScore)
                     {
                         bestScore = score;
