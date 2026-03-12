@@ -320,7 +320,7 @@ namespace SpacefleetTradeMod.Patches
 
                 Market bestMarket = null;
                 ResourceDefinition bestResource = null;
-                float bestScore = 0f;
+                float bestScore = float.MinValue;
                 int bestBuyPrice = 0;
                 int bestSellPrice = 0;
 
@@ -344,18 +344,15 @@ namespace SpacefleetTradeMod.Patches
                     float volume = Mathf.Min(available, __instance.totalStorageSpace);
                     float totalProfit = profitPerUnit * volume;
 
-                    // Round-trip time: trader→seller + seller→buyer
+                    // Time as tiebreaker only
                     float distToSeller = Vector3.Distance(__instance.transform.position, seller.transform.position);
                     float distSellerToBuyer = Vector3.Distance(seller.transform.position, buyer.transform.position);
-                    float totalDist = distToSeller + distSellerToBuyer;
-
                     var fleet = __instance.GetComponent<FleetManager>();
                     float accG = (fleet != null && fleet.maxAccG > 0f) ? fleet.maxAccG : 1f;
-                    float accKkm = accG * 73234.4f;
-                    float travelTime = totalDist > 0f ? 2f * Mathf.Sqrt(totalDist / accKkm) : 0f;
-                    float totalTime = travelTime + 0.5f;
+                    float travelDays = ProfitOptimizerPatch.EstimateTravelTime(distToSeller + distSellerToBuyer, accG);
+                    float timeTiebreaker = 1f / (1f + travelDays);
 
-                    float score = totalProfit / totalTime;
+                    float score = totalProfit + timeTiebreaker;
                     if (score > bestScore)
                     {
                         bestScore = score;

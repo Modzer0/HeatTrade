@@ -5,28 +5,22 @@ using UnityEngine;
 namespace SpacefleetTradeMod.Patches
 {
     /// <summary>
-    /// Replaces vanilla random resource selection with profit-per-time optimization.
+    /// Replaces vanilla random resource selection with profit-optimized selection.
     ///
-    /// For each resource, evaluates every seller→buyer pair and scores:
-    ///   score = totalProfit / estimatedRoundTripTime
+    /// Scoring: totalProfit first, with travel time as tiebreaker.
+    ///   primaryScore = totalProfit = (sellPrice - buyPrice) * min(available, cargo)
+    ///   tiebreaker   = 1 / (1 + travelDays)  (range 0-1, higher = faster)
+    ///   finalScore   = totalProfit + tiebreaker
     ///
-    /// Round trip = trader→seller + seller→buyer (the sell leg).
-    /// Travel time is estimated using brachistochrone physics:
-    ///   time ≈ 2 * sqrt(distance / (accG * gAccDay))
-    /// where gAccDay converts G to game distance units per day².
+    /// Multi-day trips are fine if they yield more total profit. Time only
+    /// breaks ties between trades with similar profit.
     ///
-    /// This ensures cargo ships pick the trade that makes the most credits
-    /// per unit of game time, naturally preferring nearby high-margin trades.
-    ///
-    /// Non-tanker cargo ships are blocked from trading fuel resources.
+    /// Non-tanker cargo ships are hard-blocked from fuel resources at every level.
     /// </summary>
     [HarmonyPatch(typeof(GlobalMarket), nameof(GlobalMarket.GetBestSellerAnyExceptHostile))]
     public static class ProfitOptimizerPatch
     {
         internal static Trader CallingTrader;
-
-        // gAccDay: 1G in game distance units per day².
-        // From Navigation.cs: accKkm = accG * gAccDay, where gAccDay = 73234.4f
         private const float gAccDay = 73234.4f;
 
         static bool Prefix(
@@ -56,7 +50,6 @@ namespace SpacefleetTradeMod.Patches
                 return false;
             }
 
-            // Trader context
             Vector3 traderPos = Vector3.zero;
             float cargoCapacity = 100f;
             float fleetAccG = 1f;
@@ -66,8 +59,7 @@ namespace SpacefleetTradeMod.Patches
             {
                 traderPos = CallingTrader.transform.position;
                 cargoCapacity = CallingTrader.totalStorageSpace > 0f
-                    ? CallingTrader.totalStorageSpace
-                    : 100f;
+                    ? CallingTrader.totalStorageSpace : 100f;
                 isTanker = VirtualFuelTank.Get(CallingTrader) != null;
 
                 var fleet = CallingTrader.GetComponent<FleetManager>();
@@ -78,26 +70,23 @@ namespace SpacefleetTradeMod.Patches
             var allResources = __instance.allResources.resources;
             Market bestSeller = null;
             ResourceDefinition bestResource = null;
-            float bestScore = 0f;
+            float bestScore = float.MinValue;
 
             foreach (var resource in allResources)
             {
-                // Non-tanker cargo ships must NOT trade fuel
+                // Hard block: non-tankers never trade fuel
                 if (!isTanker && VirtualFuelTank.IsFuelResource(resource))
                     continue;
 
-                // Quick filter: no arbitrage opportunity globally
                 int avgBuy = __instance.GetAverageBuyPriceOf(resource);
                 int avgSell = __instance.GetAverageSellPriceOf(resource);
                 if (avgBuy >= avgSell) continue;
 
-                // Find cheapest seller
                 Market seller = __instance.GetBestSellerFromList(resource, friendly);
                 if (seller == null) continue;
 
                 int buyPrice = seller.GetCurrentPrice(resource, true);
 
-                // Find best buyer and their price
                 int sellPrice = 0;
                 Market buyer = __instance.GetBestBuyerFromList(resource, friendly, ref sellPrice);
                 if (buyer == null || sellPrice <= buyPrice) continue;
@@ -109,17 +98,14 @@ namespace SpacefleetTradeMod.Patches
                 float volume = Mathf.Min(available, cargoCapacity);
                 float totalProfit = profitPerUnit * volume;
 
-                // Estimate round-trip time: trader→seller + seller→buyer
+                // Time as tiebreaker only (0 to 1 range, won't outweigh profit)
                 float distToSeller = Vector3.Distance(traderPos, seller.transform.position);
                 float distSellerToBuyer = Vector3.Distance(seller.transform.position, buyer.transform.position);
-                float totalDist = distToSeller + distSellerToBuyer;
+                float travelDays = EstimateTravelTime(distToSeller + distSellerToBuyer, fleetAccG);
+                float timeTiebreaker = 1f / (1f + travelDays);
 
-                float travelTime = EstimateTravelTime(totalDist, fleetAccG);
-
-                // Add a base time for docking/trading (prevents infinite score at zero distance)
-                float totalTime = travelTime + 0.5f;
-
-                float score = totalProfit / totalTime;
+                // Primary: total profit. Tiebreaker: faster trips win among equal profit.
+                float score = totalProfit + timeTiebreaker;
 
                 if (score > bestScore)
                 {
@@ -133,7 +119,7 @@ namespace SpacefleetTradeMod.Patches
             {
                 refResource = bestResource;
                 __result = bestSeller;
-                Plugin.Log.LogDebug($"[ProfitOptimizer] Best: {bestResource.resourceName} (cr/day: {bestScore:F0})");
+                Plugin.Log.LogDebug($"[ProfitOptimizer] Best: {bestResource.resourceName} profit={bestScore:F0}");
             }
             else
             {
@@ -143,26 +129,18 @@ namespace SpacefleetTradeMod.Patches
             return false;
         }
 
-        /// <summary>
-        /// Estimates travel time for a brachistochrone trajectory (accelerate half, decelerate half).
-        /// time = 2 * sqrt(distance / (accG * gAccDay))
-        /// Returns time in game days.
-        /// </summary>
-        private static float EstimateTravelTime(float distance, float accG)
+        internal static float EstimateTravelTime(float distance, float accG)
         {
             if (distance <= 0f) return 0f;
             float accKkm = accG * gAccDay;
             if (accKkm <= 0f) return float.MaxValue;
-            // Half-distance accel + half-distance decel = 2 * sqrt(halfDist / (0.5 * accKkm))
-            // Simplifies to: 2 * sqrt(distance / accKkm)
             return 2f * Mathf.Sqrt(distance / accKkm);
         }
     }
 
     /// <summary>
-    /// Stashes the calling Trader before TradeCycle so ProfitOptimizerPatch
-    /// can access position, cargo capacity, and fleet acceleration.
-    /// Also blocks non-tanker cargo ships from selling fuel resources.
+    /// Stashes the calling Trader before TradeCycle runs.
+    /// Postfix hard-blocks fuel trades for non-tankers as a safety net.
     /// </summary>
     [HarmonyPatch(typeof(Trader), "TradeCycle")]
     public static class TraderContextPatch
@@ -185,6 +163,28 @@ namespace SpacefleetTradeMod.Patches
                     __result = false;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Hard block: prevent non-tanker cargo ships from ever adding fuel to their cargo.
+    /// Even if some code path bypasses the optimizer filter, this ensures fuel never
+    /// enters a regular cargo ship's hold.
+    /// </summary>
+    [HarmonyPatch(typeof(Trader), "ModifyResourceInCargo")]
+    public static class BlockCargoFuelPatch
+    {
+        [HarmonyPriority(Priority.VeryHigh)]
+        static bool Prefix(Trader __instance, ResourceDefinition resource, float quantity)
+        {
+            // Only block ADDING fuel to non-tankers
+            if (quantity <= 0f) return true; // selling/removing is fine
+            if (!VirtualFuelTank.IsFuelResource(resource)) return true; // not fuel
+            if (VirtualFuelTank.Get(__instance) != null) return true; // tanker, let TankerModifyResourcePatch handle it
+
+            // Non-tanker trying to add fuel to cargo — block it
+            Plugin.Log.LogWarning($"[FuelBlock] Blocked {resource.resourceName} from entering cargo on {__instance.name}");
+            return false;
         }
     }
 }

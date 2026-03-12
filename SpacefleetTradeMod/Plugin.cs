@@ -10,7 +10,7 @@ namespace SpacefleetTradeMod
     {
         public const string PluginGUID = "com.modder.spacefleet.trademod";
         public const string PluginName = "Spacefleet Trade Optimizer";
-        public const string PluginVersion = "0.2.0";
+        public const string PluginVersion = "0.2.1";
 
         internal static ManualLogSource Log;
 
