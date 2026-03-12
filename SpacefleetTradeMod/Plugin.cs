@@ -20,6 +20,7 @@ namespace SpacefleetTradeMod
         public static ConfigEntry<int> FuelProductionMultiplier;
         public static ConfigEntry<string> DTFuelStationName;
         public static ConfigEntry<string> DHFuelStationName;
+        public static ConfigEntry<float> VirtualTankCapacityMultiplier;
 
         private void Awake()
         {
@@ -39,6 +40,9 @@ namespace SpacefleetTradeMod
 
             DHFuelStationName = Config.Bind("Fuel Production", "DHFuelStationName", "New Anchorage",
                 "Station publicName that gets boosted DH fuel production");
+
+            VirtualTankCapacityMultiplier = Config.Bind("Tanker", "VirtualTankCapacityMultiplier", 1.0f,
+                "Multiplier for virtual fuel cargo tank capacity (1.0 = same as fleet's total fuel module storage)");
 
             var harmony = new Harmony(PluginGUID);
             harmony.PatchAll();
